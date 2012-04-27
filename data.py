@@ -22,12 +22,12 @@ class WQHS(object):
                      'lcd soundsystem':{'sound of silver':{'all my friends': [(2012, 17, 3), (2012, 17, 3), (2011, 17, 3)]}}}
 
                                            
-    def lookup_artist(self):
+    def lookup_artist(self, artist):
         'Enter name of artist to see how many songs by them were played'
         
         count = 0
 
-        artist = raw_input("Enter artist: ")
+##        artist = raw_input("Enter artist: ")
        
         for albums in self.data[artist.lower()].values():
             for songs in albums.values():
@@ -36,7 +36,7 @@ class WQHS(object):
         print '%d Songs Played By %s' % (count, artist)
 
         
-    def lookup_freq(self):
+    def lookup_freq(self, time):
         'Enter timespan to see top played artist, album, and song in that timespan'
 
         print 'Enter timespan to see top played artist, album, and song'
@@ -46,7 +46,7 @@ class WQHS(object):
         print 'Today is:'
         print self.today 
 
-        time = raw_input("Enter timespan: ")
+##        time = raw_input("Enter timespan: ")
         time = time.lower()
 
         top_artist = [0]
@@ -87,16 +87,16 @@ class WQHS(object):
 
         
 
-    def add_song(self):
+    def add_song(self, artist, album, song):
         'Enter name of artist, album, and song to add it to the database'
 
-        artist = raw_input("Enter artist: ")
+##        artist = raw_input("Enter artist: ")
         artist = artist.lower()
         
-        album  = raw_input("Enter album: ")
+##        album  = raw_input("Enter album: ")
         album  = album.lower()
         
-        song   = raw_input("Enter song: ")
+##        song   = raw_input("Enter song: ")
         song   = song.lower()
 
         if artist not in self.data:
