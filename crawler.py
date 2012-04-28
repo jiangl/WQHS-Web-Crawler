@@ -43,18 +43,21 @@ def load(address):
                 elif tracker == 3:
                     album = match
                     #do dictionary shit here
-##                    print "Artist: ", artist
-##                    print "Song: ", song
-##                    print "Album: ", album
-##                    print "Date: ", date
-##                    print
+                    print "Artist: ", artist
+                    print "Song: ", song
+                    print "Album: ", album
+                    print "Date: ", date
+                    print
+                    tracker = 4
+                elif tracker == 4:
                     tracker = 1
                 else:
                     print "Wtf this shouldn't happen."
                     
         else:
-            pass
-##            print "No playlist"
+            #pass
+            print "No playlist"
+            
 ##            print
            
     except urllib2.HTTPError, e:
@@ -82,12 +85,12 @@ def lyrics(artist, song):
 if __name__ == "__main__":
 ##    start = clock()
 ##    #6425 total so far, 0.0125units = 1 second
-##    for page in range(300,6425):
-##        load('http://www.wqhs.org/playlist.php?id='+ str(page))
+    for page in range(1,6425):
+        load('http://www.wqhs.org/playlist.php?id='+ str(page))
 ##    elapsed = (clock() - start)
 ##    print elapsed
 
-    words = lyrics('Carly Rae Jepsen', 'Call Me Maybe');
-    print words
+##    words = lyrics('Carly Rae Jepsen', 'Call Me Maybe');
+##    print words
 
 
