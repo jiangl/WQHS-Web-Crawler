@@ -13,10 +13,21 @@ def load(address):
         web_handle = urllib2.urlopen(address)
         web_text = web_handle.read()
         matches = sre.findall('\<td class="pl"\>(.*?)\&', web_text)
-        date_match = sre.findall('(\d{1}\-\d{2}\-\d{2})', web_text)
+        date_match = sre.findall('(\d{1,2}\-\d{2}\-\d{2})', web_text)
+
         
         if (date_match != []):
             date = date_match[1];
+            size = len(date);
+            if (size == 7):
+                month = date[0] + date[1]
+                day = sre.findall('\-\d{1,2}\-', date)
+                year = date[-2] + date[-1]               
+            else:
+                month = date[0]
+                day = sre.findall('\-\d{1,2}\-', date)
+                year = date[-2] + date[-1]            
+            
             tracker = 1
             artist = ""
             song = ""
@@ -69,11 +80,12 @@ def lyrics(artist, song):
 if __name__ == "__main__":
     start = clock()
     #6425 total so far, 0.0125units = 1 second
-    for page in range(1,6425):
+    for page in range(300,6425):
         load('http://www.wqhs.org/playlist.php?id='+ str(page))
     elapsed = (clock() - start)
     print elapsed
 
 ##    words = lyrics('Carly Rae Jepsen', 'Call Me Maybe');
 ##    print words
-    
+
+
