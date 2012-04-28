@@ -2,6 +2,7 @@ import urllib2
 import sre
 import sys
 from time import clock, time
+from datetime import date, datetime
 
 #imports for musicbrainz
 import logging
@@ -14,19 +15,11 @@ def load(address):
         web_text = web_handle.read()
         matches = sre.findall('\<td class="pl"\>(.*?)\&', web_text)
         date_match = sre.findall('(\d{1,2}\-\d{1,2}\-\d{2})', web_text)
-
         
         if (date_match != []):
             date = date_match[1];
-            size = len(date);
-            if (size == 7):
-                month = date[0] + date[1]
-                day = sre.findall('\-\d{1,2}\-', date)
-                year = date[-2] + date[-1]               
-            else:
-                month = date[0]
-                day = sre.findall('\-\d{1,2}\-', date)
-                year = date[-2] + date[-1]            
+            date = datetime.strptime(date, "%m-%d-%y")
+            date = date.isocalendar()
             
             tracker = 1
             artist = ""
@@ -42,20 +35,28 @@ def load(address):
                     tracker = 3
                 elif tracker == 3:
                     album = match
-##                    print "Artist: ", artist
-##                    print "Song: ", song
-##                    print "Album: ", album
-##                    print "Date: ", date
-##                    print
-                    tracker = 4
+                    if (album == ''):
+                        tracker = 1
+                        print "Artist: ", artist
+                        print "Song: ", song
+                        print "Album: ", album
+                        print "Date: ", date
+                        print
+                    else:
+                        tracker = 4
                 elif tracker == 4:
                     tracker = 1
+                    print "Artist: ", artist
+                    print "Song: ", song
+                    print "Album: ", album
+                    print "Date: ", date
+                    print
                 else:
                     print "Wtf this shouldn't happen."
                     
         else:
             pass
-##            print "No playlist"
+            print address
            
     except urllib2.HTTPError, e:
         print "Cannot retreieve URL: HTTP Error Code", e.code
@@ -81,7 +82,7 @@ def lyrics(artist, song):
 
 if __name__ == "__main__":
 ##    #6425 total so far, 0.0125units = 1 second
-    for page in range(1,6425):
+    for page in range(6024,6030):
         load('http://www.wqhs.org/playlist.php?id='+ str(page))
 
 ##    words = lyrics('Carly Rae Jepsen', 'Call Me Maybe');
