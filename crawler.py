@@ -13,7 +13,7 @@ def load(address):
         web_handle = urllib2.urlopen(address)
         web_text = web_handle.read()
         matches = sre.findall('\<td class="pl"\>(.*?)\&', web_text)
-        date_match = sre.findall('(\d{1,2}\-\d{2}\-\d{2})', web_text)
+        date_match = sre.findall('(\d{1,2}\-\d{1,2}\-\d{2})', web_text)
 
         
         if (date_match != []):
@@ -62,6 +62,7 @@ def load(address):
     except urllib2.URLError, e:
         print "Cannot retrieve URL: " + e.reason[1]
 
+
 def lyrics(artist, song):
     try:
         address = 'http://www.azlyrics.com/lyrics/' + \
@@ -69,7 +70,8 @@ def lyrics(artist, song):
                   song.replace(' ', '').lower() + '.html'
         web_handle = urllib2.urlopen(address)
         web_text = web_handle.read()
-        lyrics = sre.findall('\<!-- start of lyrics --\>(*?)\<', web_text)
+        lyrics = sre.findall('(?s)<!-- start of lyrics -->.*?<!', web_text, sre.MULTILINE)
+        
         return lyrics
     except urllib2.HTTPError, e:
         print "Cannot retreieve URL: HTTP Error Code", e.code
@@ -78,14 +80,14 @@ def lyrics(artist, song):
 
 
 if __name__ == "__main__":
-    start = clock()
-    #6425 total so far, 0.0125units = 1 second
-    for page in range(300,6425):
-        load('http://www.wqhs.org/playlist.php?id='+ str(page))
-    elapsed = (clock() - start)
-    print elapsed
+##    start = clock()
+##    #6425 total so far, 0.0125units = 1 second
+##    for page in range(300,6425):
+##        load('http://www.wqhs.org/playlist.php?id='+ str(page))
+##    elapsed = (clock() - start)
+##    print elapsed
 
-##    words = lyrics('Carly Rae Jepsen', 'Call Me Maybe');
-##    print words
+    words = lyrics('Carly Rae Jepsen', 'Call Me Maybe');
+    print words
 
 
