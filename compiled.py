@@ -7,7 +7,11 @@ import sys
 import time
 from datetime import date, datetime
 
-class WQHS(object):
+from coverart.sources import CoverSourceBase
+from urllib import urlopen, quote_plus
+from xml.etree.ElementTree import parse
+
+class WQHS(CoverSourceBase):
 
     def __init__(self):
         'Stores database'
@@ -15,7 +19,12 @@ class WQHS(object):
         self.data = {}
         self.today = date.today()
         self.today = self.today.isocalendar()
-        self.last_page = 6400 # page number that was last parsed
+        self.last_page = 2 # page number that was last parsed
+
+        CoverSourceBase.__init__(self)
+        self.source_name = 'Last.FM'
+        self.api_key = '2f63459bcb2578a277c5cf5ec4ca62f7'
+        self.url_base = 'http://ws.audioscrobbler.com/2.0/?method=album.search&api_key=%s' % self.api_key
 
         #sample data
 ##        self.data = {'the beatles': {'the white album': {'revolution': [(2012, 15, 7), (2012, 1, 7)],\
@@ -103,12 +112,18 @@ class WQHS(object):
         album_result = 'Most played album  of %s is: %s, by %s (%s times)'  % (timespan, top_album[1], top_album[2], top_album[0])
         song_result = 'Most played song   of %s is: %s, by %s, off of the album, %s (%s times)' % (timespan, top_song[1], top_song[2], top_song[3], top_song[0])
 
+        top_album_art = self.cover_art(top_album[1])
+        
+        top_song_album_art = self.cover_art(top_album[3])
+        top_song_lyrics = self.lyrics(top_song[1], top_song[2])
+        
+        
         print artist_result
         print album_result
         print song_result
         print ''
 
-        return artist_result, album_result, song_result
+        return artist_result, album_result, song_result, top_album_art, top_song_album_art, top_song_lyrics
         
     
     def add_song(self, artist, song, album, date):
@@ -193,7 +208,7 @@ class WQHS(object):
             print "Cannot retrieve URL: " + e.reason[1]
 
 
-    def lyrics(artist, song):
+    def lyrics(self, artist, song):
         try:
             address = 'http://www.azlyrics.com/lyrics/' + \
                       artist.replace(' ', '').lower() + '/' + \
@@ -231,8 +246,24 @@ class WQHS(object):
             start = start+5
             end = start+5
 
+    def cover_art(self, query):
+        url = '%s&album=%s' % (self.url_base, quote_plus('%s' % query))
+        tree = parse(urlopen(url))
+        count = 0
+        for a in tree.findall('results/albummatches/album'):
+            result = {}
+            if (a.findtext('name').lower() == query.lower()):
+                for i in a.findall('image'):
+                    size = i.get('size')
+                    if size == 'extralarge':
+                        result = i.text
+                    elif (size == 'large') & (result == ''):
+                        result = i.text
+                count += 1
+                return result
+                if count == self.max_results:
+                    break
 
-    
                                    
 if __name__ == "__main__":
     
