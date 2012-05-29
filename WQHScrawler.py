@@ -1,3 +1,4 @@
+#!/usr/bin/python
 'Provides functions to add songs from WQHS.org to music database (stored as nested dictionary) \
 and to lookup information about most frequently played things on the radio'
 
@@ -6,20 +7,44 @@ import sre
 import sys
 import time
 from datetime import date, datetime
+from ast import literal_eval
 
-from coverart.sources import CoverSourceBase
+from coverart.sources import CoverSourceBase 
 from urllib import urlopen, quote_plus
 from xml.etree.ElementTree import parse
 
+import cgitb # for printing out to the web
+cgitb.enable()
+
+
 class WQHS(CoverSourceBase):
+    'Crawler Class'
 
     def __init__(self):
-        'Stores database'
+        'Stores database, last page parsed, and coverart class'
         
-        self.data = {}
+        try:    
+            load_data = open('WQHSdata.txt', 'rU')   # load dictionary      
+            self.data = literal_eval(load_data.read())
+            load_data.close()
+        except IOError: # if file not found, make it
+            self.data = {}           
+            save = open('WQHSdata.txt', 'w')
+            save.write(str(self.data))
+            save.close()
+            
+        try:                                  
+            load_last = open('last_page.txt', 'rU')   # load last page parsed
+            self.last_page = eval(load_last.read())
+            load_last.close()                     
+        except IOError: # if file not found, or first time running, make it
+            self.last_page = '2'
+            save = open('last_page.txt', 'w')
+            save.write(self.last_page)
+            save.close()
+        
         self.today = date.today()
         self.today = self.today.isocalendar()
-        self.last_page = 6460 # page number that was last parsed
 
         CoverSourceBase.__init__(self)
         self.source_name = 'Last.FM'
@@ -39,13 +64,16 @@ class WQHS(CoverSourceBase):
         'Enter name of artist to see how many songs by them were played'
         
         count = 0
-        artist = artist.lower()
-       
-        for albums in self.data[artist].values():
-            for songs in albums.values():
-                count += len(songs)
-
-        print '%d Songs Played By %s' % (count, artist)
+        artist = artist.title()
+        try:
+            for albums in self.data[artist].values():
+                for songs in albums.values():
+                    count += len(songs)
+        except KeyError:
+            return 'Artist not found'
+        
+        output = '%d Songs Played By %s' % (count, artist)
+        return output
 
 
         
@@ -60,11 +88,11 @@ class WQHS(CoverSourceBase):
         end = self.today
         
         if timespan == 'last year':
-            start = (self.today[0]-1, self.today[1], self.today[2])
+            start = (self.today[0]-1, self.today[1], self.today[2]) # minus a year from today
         elif timespan == 'last month':
-            start = (self.today[0], self.today[1]-4, self.today[2])
+            start = (self.today[0], self.today[1]-4, self.today[2]) # minus 4 weeks from today
         elif timespan == 'last week':
-            start = (self.today[0], self.today[1]-1, self.today[2])
+            start = (self.today[0], self.today[1]-1, self.today[2]) # minus 1 week from today
         elif timespan == 'all time':
             start = (2006, 1, 1)                                                  
         elif isinstance(timespan, tuple): # if custom date range is passed in as tuple
@@ -74,14 +102,14 @@ class WQHS(CoverSourceBase):
         return self.lookup_freq(start, end, timespan) # call the lookup_freq function with specified timespan
 
 
-    def lookup_freq(self, start, end, timespan):  # called by timespan_select function
+    def lookup_freq(self, start, end, timespan):
+        'Method by timespan_select to look through database'
 
         top_artist = [0]
         top_album  = [0]
         top_song   = [0]
         
         for artist in self.data.keys():
-##            print artist
             artist_count = 0 # reset temp count for number songs in each album for artist
             
             for album in self.data[artist].keys():
@@ -91,18 +119,18 @@ class WQHS(CoverSourceBase):
                     song_count = 0 # reset temp count for number songs in each list of dates
                     
                     for date in self.data[artist][album][song]: 
-                        if date >= start and date <= end: # check ranges of dates (most inner loop)
-                            song_count += 1
-                            album_count += 1
+                        if date >= start and date <= end and artist != '' and song != '':
+                            # check ranges of dates (most inner loop) and for empty strings
+                            if album != '':
+                                song_count += 1
+                                album_count += 1
                             artist_count += 1
                             
                     if song_count > top_song[0]: # after iterating through dates check if song beats the top spot
                         top_song   = [song_count, song, artist, album]
-
-##                artist_count += album_count                
+               
                 if album_count > top_album[0]: # after iterating songs check if album beats the top spot
                     top_album = [album_count, album, artist]
-
 
             if artist_count > top_artist[0]: # after iterating through albums check if artist beats the top spot
                 top_artist = [artist_count, artist]
@@ -110,36 +138,21 @@ class WQHS(CoverSourceBase):
         
         artist_result = 'Most played artist of %s is: %s (%s times)' % (timespan, top_artist[1], top_artist[0])
         album_result = 'Most played album  of %s is: %s, by %s (%s times)'  % (timespan, top_album[1], top_album[2], top_album[0])
-        song_result = 'Most played song   of %s is: %s, by %s, off of the album, %s (%s times)' % (timespan, top_song[1], top_song[2], top_song[3], top_song[0])
+        song_result = 'Most played song   of %s is: %s, by %s, off of the album %s (%s times)' % (timespan, top_song[1], top_song[2], top_song[3], top_song[0])
 
         top_album_art = self.cover_art(top_album[1])
-        
         top_song_album_art = self.cover_art(top_song[3])
         top_song_lyrics = self.lyrics(top_song[2], top_song[1])
-        
-        
-        print artist_result
-        print album_result
-        print song_result
-        print ''
-        print 'Top Album\'s Cover-Art: %s' % top_album_art
-        print 'Top Song\'s Cover-Art: %s' % top_song_album_art
-        print 'Top Song\'s Lyrics: %s' % top_song_lyrics
 
         return artist_result, album_result, song_result, top_album_art, top_song_album_art, top_song_lyrics
         
     
     def add_song(self, artist, song, album, date):
-        'Enter name of artist, album, and song to add it to the database'
+        'Enter name of artist, album, and song to add it to database'
 
-        artist = artist.lower()
-        album = album.lower()
-        song = song.lower()
-
-##        print 'Artist: %s'% artist
-##        print 'Album: %s'% album
-##        print 'Song: %s'% song
-##        print ''
+        artist = artist.title()
+        album = album.title()
+        song = song.title()
 
         if artist not in self.data:
             self.data[artist] = {}
@@ -156,12 +169,12 @@ class WQHS(CoverSourceBase):
         else:
             self.data[artist][album][song].append(date)
             
+            
     def load(self, address):
+        'Parse through webpages to find info'
         try:
             web_handle = urllib2.urlopen(address)
             web_text = web_handle.read()
-     #       matches = sre.findall('\<td class="pl"\>(.*?)\&', web_text)
-     #       matches = sre.findall('\>(.*?)\&nbsp;\<', web_text)
             date_match = sre.findall('(\d{1,2}\-\d{1,2}\-\d{2})', web_text)
 
             lines = sre.findall('\<td class="plleft"\>(.*?)\</td\>\</tr\>', \
@@ -193,7 +206,6 @@ class WQHS(CoverSourceBase):
                         elif tracker == 3:
                             album = match
                             self.add_song(artist, song, album, date)
- 
                             tracker = 4
                         elif tracker ==4:
                             tracker =1 
@@ -202,7 +214,6 @@ class WQHS(CoverSourceBase):
             else:
                 playlist = False
                 pass
-                print "No playlist checkpoint 1"
 
             return playlist
         
@@ -213,49 +224,85 @@ class WQHS(CoverSourceBase):
 
 
     def lyrics(self, artist, song):
+        'Enter artist and song to find lyrics on one of two online databases'
+        song = song.replace(',','')
         try:
             begin = artist[0]+artist[1]+artist[2]
             if begin.lower() == 'the':
                 artist = artist[4:]
-                print artist
-                
+
+        
             address = 'http://www.azlyrics.com/lyrics/' + \
                       artist.replace(' ', '').lower() + '/' + \
                       song.replace(' ', '').lower() + '.html'
             web_handle = urllib2.urlopen(address)
             web_text = web_handle.read()
-            lyrics = sre.findall('(?s)<!-- start of lyrics -->.*?<!', web_text, sre.MULTILINE)
-            
+            lyrics = sre.findall('(?s)<!-- start of lyrics -->(.*?)<!', web_text, sre.MULTILINE)
+            lyrics = lyrics[0]
+            lyrics.replace('\n', '')
+            lyrics.replace('\r\n', '')
             return lyrics
-        except urllib2.HTTPError, e:
-            print "Cannot retreieve URL: HTTP Error Code", e.code
-        except urllib2.URLError, e:
-            print "Cannot retrieve URL: " + e.reason[1]
+        except urllib2.HTTPError, urllib2.URLError: # if not found, try different website
+            try:
+                begin = artist[0]+artist[1]+artist[2]
+                if begin.lower() == 'the':
+                    artist = artist[4:]
+                    
+                address = 'http://indierocklyrics.com/' + \
+                          artist.replace(' ', '-').lower() + '/' + \
+                          song.replace(' ', '-').lower() + '-lyrics'
+                web_handle = urllib2.urlopen(address)
+                web_text = web_handle.read()
+                lyrics = sre.findall('(?s)<p>\&nbsp;<br\ />(.*?)<a\ href\=\"http://www'\
+                                     , web_text, sre.MULTILINE)
+                lyrics = lyrics[0]
+                lyrics.replace('\n', '')
+                lyrics.replace('\r\n', '')
+                return lyrics
+            except urllib2.HTTPError, e:
+                print "Cannot retreieve URL: HTTP Error Code", e.code
+            except urllib2.URLError, e:
+                print "Cannot retrieve URL: " + e.reason[1] 
 
             
     
     def update(self):
-        'method that updates database every time someone tries to look up info'
-        start = self.last_page  # constants for loops
-        end = start+5
+        'Method that updates database every time someone tries to look up info in case new shows happened'
+        blank = 15 # guess that there will not be a strech of x blank shows in a row.
+                   # (Even if a show didn't happen or didn't yet occur, the webpage still exists)
+        
+        start = int(self.last_page)  # constants for loops
+        end = start + blank
         no_playlist_count = 0
         
-        while no_playlist_count <5: # guess that there will not be a strech of 5 blank shows in a row 
-            no_playlist_count = 0   # to guess what the last playlist number is
+        while no_playlist_count < blank:  # parse pages in batches, in case we get to end of playlists with data
+            no_playlist_count = 0   
 
             for page in range(start, end):
-                print page
-                if data.load('http://www.wqhs.org/playlist.php?id='+ str(page)) == True:
-                    self.last_page = page
-                else:
-                    print "No playlist checkpoint 2"
+                if self.load('http://www.wqhs.org/playlist.php?id='+ str(page)) == True:
+##                    if page % 100 == 0: # print out every 100th page for sanity checks
+##                        print page
+                    self.last_page = '%d' % page
+                    save = open('last_page.txt', 'w')
+                    save.write(self.last_page)
+                    save.close
+                else: # if playlist wasn't made for that show
+##                    print "No playlist: %d" % page 
                     no_playlist_count += 1
 
-##            print no_playlist_count
-            start = start+5
-            end = start+5
+            start = start + blank
+            end = start + blank
+
+            save = open('WQHSdata.txt', 'w')
+            save.write(str(self.data))
+            save.close()
+
+            
 
     def cover_art(self, query):
+        'Enter album name to get link to cover art'
+        
+        query = query.replace(',','')
         url = '%s&album=%s' % (self.url_base, quote_plus('%s' % query))
         tree = parse(urlopen(url))
         count = 0
@@ -272,26 +319,3 @@ class WQHS(CoverSourceBase):
                 return result
                 if count == self.max_results:
                     break
-
-                                   
-if __name__ == "__main__":
-    
-##    test = WQHS()
-##    data = test.data
-##    
-##    test.lookup_artist('the beatles')
-##    test.add_song('lcd soundsystem', 'sound of silver', 'north american scum')
-##    
-##    test.timespan_select('all time')
-##    test.timespan_select('last year')
-##
-##    custom_range = ((2008, 17, 3), (2008, 17, 4))
-##    test.timespan_select(custom_range)
-
-    data = WQHS()
-    data.timespan_select('all time')
-##    print data.lyrics('the beatles', 'all my loving')
-##    data.update()
-
-##    for page in range(6476, 6477):  # tester loop
-##        data.load('http://www.wqhs.org/playlist.php?id='+ str(page)) 

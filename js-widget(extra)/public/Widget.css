@@ -1,0 +1,35 @@
+
+.text {
+	background-color: #FFF;
+	font-size:16px;
+	font-family:"Palatino Linotype", "Book Antiqua", Palatino, serif;
+	}
+.background {
+  margin: 20px;
+  padding: 20px;
+  border:#FFF groove;
+  border-color: #FB974D;
+  background-image:url(Background-CIS192.jpg);
+  background-repeat:repeat;
+  width: 200 px;
+  height: 200px;
+}
+.header {
+	background-color: #FB974D;
+	border:double;
+	border-color:#FFF;
+	color:#FFF;
+	font-size: 22px;
+	text-align:center;
+	padding: 10px;
+  /*margin-left:90px;*/
+  font-family:"Palatino Linotype", "Book Antiqua", Palatino, serif;
+}
+
+.button{
+	margin-top:5px;
+	font-size:17px;
+	font-family:"Palatino Linotype", "Book Antiqua", Palatino, serif;
+	height:30px;
+}
+
